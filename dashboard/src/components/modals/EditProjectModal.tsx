@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Dialog,
   DialogContent,
@@ -10,7 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { updateProject, type Project } from "@/lib/api";
+import { triggerDeploy, updateProject, type Project } from "@/lib/api";
 
 export function EditProjectModal({
   open,
@@ -23,7 +24,9 @@ export function EditProjectModal({
   project: Project;
   onUpdated?: () => void;
 }) {
+  const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
+  const [redeploying, setRedeploying] = useState(false);
   const [repoUrl, setRepoUrl] = useState(project.repoUrl);
   const [branch, setBranch] = useState(project.branch);
   const [buildContext, setBuildContext] = useState(project.buildContext);
@@ -58,12 +61,11 @@ export function EditProjectModal({
     );
   };
 
-  const onSubmit = async (e: FormEvent) => {
-    e.preventDefault();
+  const saveProjectSettings = async (): Promise<boolean> => {
     const port = Number.parseInt(appPort, 10);
     if (!Number.isFinite(port) || port < 1 || port > 65535) {
       toast.error("App port must be between 1 and 65535.");
-      return;
+      return false;
     }
 
     const envMap: Record<string, string> = {};
@@ -74,16 +76,23 @@ export function EditProjectModal({
       }
     }
 
+    await updateProject(project.id, {
+      repoUrl: repoUrl.trim(),
+      branch: branch.trim() || "main",
+      buildContext: buildContext.trim() || ".",
+      appPort: port,
+      healthPath: healthPath.trim() || "/health",
+      env: envMap,
+    });
+    return true;
+  };
+
+  const onSubmit = async (e: FormEvent) => {
+    e.preventDefault();
     setSubmitting(true);
     try {
-      await updateProject(project.id, {
-        repoUrl: repoUrl.trim(),
-        branch: branch.trim() || "main",
-        buildContext: buildContext.trim() || ".",
-        appPort: port,
-        healthPath: healthPath.trim() || "/health",
-        env: envMap,
-      });
+      const ok = await saveProjectSettings();
+      if (!ok) return;
       toast.success("[ OK ] Project configuration updated");
       onOpenChange(false);
       onUpdated?.();
@@ -91,6 +100,24 @@ export function EditProjectModal({
       toast.error(err instanceof Error ? err.message : "Failed to update project");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const onSaveAndRedeploy = async () => {
+    setRedeploying(true);
+    try {
+      const ok = await saveProjectSettings();
+      if (!ok) return;
+      toast.success("[ OK ] Settings saved. Triggering redeployment…");
+      const r = await triggerDeploy(project.id);
+      toast.success(`Redeployment queued — job ${r.jobId.slice(0, 8)}…`);
+      onOpenChange(false);
+      onUpdated?.();
+      navigate(`/projects/${project.id}/deploy/${r.jobId}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save and redeploy");
+    } finally {
+      setRedeploying(false);
     }
   };
 
@@ -215,17 +242,29 @@ export function EditProjectModal({
             </div>
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0 pt-2">
+          <DialogFooter className="gap-2 pt-2 sm:justify-end">
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              disabled={submitting}
+              disabled={submitting || redeploying}
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={submitting}>
+            <Button
+              type="submit"
+              variant="secondary"
+              disabled={submitting || redeploying}
+            >
               {submitting ? "Saving…" : "Save Changes"}
+            </Button>
+            <Button
+              type="button"
+              onClick={() => void onSaveAndRedeploy()}
+              disabled={submitting || redeploying}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+            >
+              {redeploying ? "Deploying…" : "Save & Redeploy"}
             </Button>
           </DialogFooter>
         </form>
