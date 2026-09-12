@@ -69,6 +69,50 @@ const CAPABILITIES: Capability[] = [
     badge: "NEW",
   },
   {
+    id: "cap-projectsettings",
+    category: "Deployment",
+    title: "Project Configuration Editor",
+    command: "PATCH /api/v1/projects/:id  {\"branch\":\"...\",\"buildContext\":\"...\",\"env\":{...}}",
+    description:
+      "Edit Git repository URL, default target branch, Docker build context, app port, and root environment variables dynamically.",
+    details:
+      "Validates repo URL accessibility and branch syntax before updating database records. Synchronizes root environment variables securely with AES-GCM encryption.",
+    badge: "NEW",
+  },
+  {
+    id: "cap-analytics",
+    category: "Monitoring",
+    title: "Per-Project Telemetry & Hit Tracking",
+    command: "GET /api/v1/projects/:id/analytics",
+    description:
+      "Real-time rolling 24-hour hit aggregation, average latency, and HTTP status code distribution (2xx, 3xx, 4xx, 5xx).",
+    details:
+      "Proxy telemetry hooks record downstream response times and status buckets into sliding Redis window counters with in-memory fallback, rendered in dashboard telemetry cards.",
+    badge: "NEW",
+  },
+  {
+    id: "cap-globaldeployments",
+    category: "Monitoring",
+    title: "Cross-Project Deployment Feed",
+    command: "GET /api/v1/deployments",
+    description:
+      "Global unified deployment feed across all registered projects with direct log inspection and instant stage preview links.",
+    details:
+      "Centralized activity console displays status, target environments, assigned container ports, and execution logs across your entire infrastructure.",
+    badge: "NEW",
+  },
+  {
+    id: "cap-github-mgmt",
+    category: "Security",
+    title: "GitHub App Installation Management",
+    command: "DELETE /api/v1/github/installation/:installationId",
+    description:
+      "Disconnect or remove GitHub App installations directly from the dashboard integrations console.",
+    details:
+      "Allows clean unlinking of obsolete GitHub organizations, automated webhook cleanup, and re-authentication with fresh repository permissions.",
+    badge: "NEW",
+  },
+  {
     id: "cap-projectdomain",
     category: "Networking",
     title: "Project Custom Domains",

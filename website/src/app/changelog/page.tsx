@@ -44,9 +44,69 @@ interface ProcessedRelease {
 
 const FALLBACK_RELEASES: ProcessedRelease[] = [
   {
+    version: "v2.6.0",
+    date: "September 13, 2026",
+    isLatest: true,
+    summary:
+      "Enterprise project configuration editor, per-project live traffic telemetry, global deployment activity stream, GitHub App installation management, and Vercel-style stage preview URLs.",
+    categories: [
+      {
+        title: "Developer Experience & Configuration",
+        badge: "NEW",
+        items: [
+          {
+            title: "Project Settings Editor",
+            description:
+              "Dynamically edit repository URL, default branch, build context directory, app port, and root environment variables from the project detail settings modal.",
+            command: "PATCH /api/v1/projects/:id",
+            prNumber: 201,
+          },
+          {
+            title: "Vercel-Style Stage Preview URLs",
+            description:
+              "Instant preview links and one-click URL copy actions on all environment stage cards and deployment history rows.",
+          },
+        ],
+      },
+      {
+        title: "Monitoring & Observability",
+        badge: "NEW",
+        items: [
+          {
+            title: "Per-Project Traffic & Response Telemetry",
+            description:
+              "Sliding 24-hour hit counters, response status code distributions (2xx, 3xx, 4xx, 5xx), and average latency telemetry per project.",
+            command: "GET /api/v1/projects/:id/analytics",
+            prNumber: 201,
+          },
+          {
+            title: "Global Deployments Activity Feed",
+            description:
+              "Cross-project deployments tab in Activity center with status badges, host ports, project links, and direct build log navigation.",
+            command: "GET /api/v1/deployments",
+            prNumber: 201,
+          },
+        ],
+      },
+      {
+        title: "Integrations & Management",
+        badge: "IMPROVEMENT",
+        items: [
+          {
+            title: "GitHub App Disconnect & Removal",
+            description:
+              "Disconnect and delete GitHub App installations from the dashboard integrations view without manual database intervention.",
+            command: "DELETE /api/v1/github/installation/:installationId",
+            prNumber: 201,
+          },
+        ],
+      },
+    ],
+  },
+  {
     version: "v2.5.0",
     date: "September 12, 2026",
-    isLatest: true,
+    isLatest: false,
     summary:
       "Automatic project stack recognition: intelligent pre-scan for Next.js, Vite, Nuxt, Remix, Astro, SvelteKit, FastAPI, Flask, Django, Go, Rust, and Dockerfiles with automatic port and health probe configuration.",
     categories: [
