@@ -58,6 +58,17 @@ const CAPABILITIES: Capability[] = [
     badge: "Core Engine",
   },
   {
+    id: "cap-autostack",
+    category: "Deployment",
+    title: "Automatic Stack Recognition",
+    command: "GET /api/v1/github/repos/detect?owner=...&repo=...",
+    description:
+      "Inspects repository manifests to automatically identify frameworks, application ports, health probe paths, and build context subdirectories.",
+    details:
+      "Pre-scans repositories for Next.js, Vite, Nuxt, Remix, Astro, SvelteKit, FastAPI, Flask, Django, Go, Rust, and Static HTML. Auto-populates container ports and health check routes in the project setup flow.",
+    badge: "NEW",
+  },
+  {
     id: "cap-projectdomain",
     category: "Networking",
     title: "Project Custom Domains",

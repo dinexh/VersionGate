@@ -44,9 +44,36 @@ interface ProcessedRelease {
 
 const FALLBACK_RELEASES: ProcessedRelease[] = [
   {
-    version: "v2.4.1",
+    version: "v2.5.0",
     date: "September 12, 2026",
     isLatest: true,
+    summary:
+      "Automatic project stack recognition: intelligent pre-scan for Next.js, Vite, Nuxt, Remix, Astro, SvelteKit, FastAPI, Flask, Django, Go, Rust, and Dockerfiles with automatic port and health probe configuration.",
+    categories: [
+      {
+        title: "Developer Experience & Automation",
+        badge: "NEW",
+        items: [
+          {
+            title: "Automated Stack Detector Service",
+            description:
+              "Backend service analyzing repository tree manifests to detect technology stacks, extract Dockerfile EXPOSE directives, and discover monorepo context directories.",
+            command: "GET /api/v1/github/repos/detect?owner=...&repo=...",
+            prNumber: 190,
+          },
+          {
+            title: "Interactive Stack Feedback in Project Setup",
+            description:
+              "Create Project dialog instantly auto-configures app port, health path, and build context presets with clean status badges upon selecting a repository.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    version: "v2.4.1",
+    date: "September 12, 2026",
+    isLatest: false,
     summary:
       "Reliable plain HTML & static site zero-downtime deployments: fixed Nginx Dockerfile generator syntax, added native /health route responses, clean URL routing, and index.htm support.",
     categories: [
