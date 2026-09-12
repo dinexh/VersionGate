@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type ClipboardEvent, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { handleEnvPaste } from "@/lib/env-parser";
 import {
   ApiError,
   createProject,
@@ -567,12 +568,24 @@ export function CreateProjectModal({
                       placeholder="KEY (e.g. DATABASE_URL)"
                       value={p.key}
                       onChange={(e) => updateEnvPair(idx, "key", e.target.value)}
+                      onPaste={(e: ClipboardEvent<HTMLInputElement>) => {
+                        const text = e.clipboardData.getData("text");
+                        if (handleEnvPaste(text, idx, setEnvPairs)) {
+                          e.preventDefault();
+                        }
+                      }}
                       className="font-mono text-xs uppercase"
                     />
                     <Input
                       placeholder="VALUE"
                       value={p.value}
                       onChange={(e) => updateEnvPair(idx, "value", e.target.value)}
+                      onPaste={(e: ClipboardEvent<HTMLInputElement>) => {
+                        const text = e.clipboardData.getData("text");
+                        if (handleEnvPaste(text, idx, setEnvPairs)) {
+                          e.preventDefault();
+                        }
+                      }}
                       className="font-mono text-xs"
                     />
                     <Button
