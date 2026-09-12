@@ -30,7 +30,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { BlueGreenTrafficCard } from "@/components/BlueGreenTrafficCard";
-import { getDeployingDeployment, publicProjectLiveUrl, publicServiceUrl } from "@/lib/deployment-display";
+import { getDeployingDeployment, publicEnvironmentUrl, publicProjectLiveUrl, publicServiceUrl } from "@/lib/deployment-display";
 import { ProjectCustomDomainCard } from "@/components/ProjectCustomDomainCard";
 import { AggregateJobLogStream } from "@/components/AggregateJobLogStream";
 import { jobArtifactLabel, jobDurationLabel } from "@/lib/job-display";
@@ -653,6 +653,19 @@ export function ProjectDetail() {
                                 View logs
                               </DropdownMenuItem>
                             ) : null}
+                            <DropdownMenuItem
+                              onClick={() => {
+                                const stageUrl = publicEnvironmentUrl(
+                                  project ? { name: project.name, basePort: project.basePort } : undefined,
+                                  d.environmentId ? environmentNameById.get(d.environmentId) : undefined,
+                                  d.port
+                                );
+                                void navigator.clipboard.writeText(stageUrl);
+                                toast.success("Copied deployment preview URL");
+                              }}
+                            >
+                              Copy preview URL
+                            </DropdownMenuItem>
                             <DropdownMenuItem
                               onSelect={() => {
                                 if (d.environmentId) {

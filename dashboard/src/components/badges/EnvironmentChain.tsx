@@ -114,29 +114,44 @@ export function EnvironmentChain({
                 </CardHeader>
                 <CardContent className="space-y-3 pt-3">
                   {active ? (
-                    <div className="space-y-1.5 text-xs text-muted-foreground">
-                      <p>
-                        <span className="text-foreground/80">v{active.version}</span>
-                        <span className="mx-1.5 text-border">·</span>
-                        <span className="font-mono">:{active.port}</span>
-                      </p>
+                    <div className="space-y-2 text-xs text-muted-foreground">
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono text-[11px] text-foreground font-semibold">v{active.version}</span>
+                        <span className="font-mono text-[10px] text-muted-foreground">Port {active.port}</span>
+                      </div>
                       {openUrl ? (
-                        <div className="flex flex-col gap-0.5">
-                          <a
-                            href={openUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="block truncate font-mono text-primary underline-offset-2 hover:underline"
-                            title={`Stage Path URL: ${openUrl}`}
-                          >
-                            Open {env.name}
-                          </a>
+                        <div className="flex flex-col gap-1.5 pt-1">
+                          <div className="flex items-center gap-1.5">
+                            <a
+                              href={openUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 font-mono text-xs font-medium text-emerald-400 hover:text-emerald-300 hover:underline"
+                              title={`Stage Path URL: ${openUrl}`}
+                            >
+                              <span>Preview {env.name}</span>
+                              <span className="text-[10px]" aria-hidden>↗</span>
+                            </a>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-5 px-1.5 text-[10px] font-mono text-muted-foreground hover:text-foreground"
+                              onClick={() => {
+                                void navigator.clipboard.writeText(openUrl);
+                                toast.success(`Copied ${env.name} preview URL`);
+                              }}
+                              title="Copy preview URL"
+                            >
+                              Copy URL
+                            </Button>
+                          </div>
                           {directPortUrl && directPortUrl !== openUrl ? (
                             <a
                               href={directPortUrl}
                               target="_blank"
                               rel="noreferrer"
-                              className="block truncate font-mono text-[10px] text-muted-foreground/75 hover:text-foreground"
+                              className="block truncate font-mono text-[10px] text-muted-foreground/70 hover:text-foreground"
                               title={`Direct Port URL: ${directPortUrl}`}
                             >
                               Direct Port (:{active.port}) ↗
