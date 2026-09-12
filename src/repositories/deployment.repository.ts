@@ -143,20 +143,27 @@ export class DeploymentRepository {
     return rows.map((r) => ({ ...r.deployment, project: r.project }));
   }
 
-  async findAll(): Promise<(DeploymentSelect & { projectId: string; jobId?: string | null })[]> {
+  async findAll(): Promise<(DeploymentSelect & { projectId: string; projectName?: string; jobId?: string | null })[]> {
     const db = getDb();
     const rows = await db
       .select({
         deployment: deployments,
         projectId: environments.projectId,
+        projectName: projects.name,
         jobId: jobs.id,
       })
       .from(deployments)
       .innerJoin(environments, eq(deployments.environmentId, environments.id))
+      .innerJoin(projects, eq(environments.projectId, projects.id))
       .leftJoin(jobs, eq(deployments.id, jobs.deploymentId))
       .orderBy(desc(deployments.createdAt));
 
-    return rows.map((r) => ({ ...r.deployment, projectId: r.projectId, jobId: r.jobId ?? null }));
+    return rows.map((r) => ({
+      ...r.deployment,
+      projectId: r.projectId,
+      projectName: r.projectName,
+      jobId: r.jobId ?? null,
+    }));
   }
 
   async updateStatus(

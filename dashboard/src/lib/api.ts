@@ -88,6 +88,7 @@ export interface Deployment {
   errorMessage?: string | null;
   /** Derived from the parent environment for dashboard filtering */
   projectId: string;
+  projectName?: string | null;
   environmentId?: string;
   promotedFromId?: string | null;
   jobId?: string | null;
