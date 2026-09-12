@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { DonutChart } from "@/components/charts/DonutChart";
 import { DeleteProjectDialog } from "@/components/modals/DeleteProjectDialog";
 import { Link, useNavigate, useParams } from "react-router-dom";
@@ -56,6 +56,16 @@ function timeAgo(date: string): string {
   return `${days}d ago`;
 }
 
+function notifyUser(title: string, options?: NotificationOptions) {
+  if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+    try {
+      new Notification(title, options);
+    } catch {
+      // browser notification error ignored
+    }
+  }
+}
+
 export function ProjectDetail() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
@@ -67,6 +77,7 @@ export function ProjectDetail() {
   const [customDomains, setCustomDomains] = useState<ProjectDomain[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const previousStatusMapRef = useRef<Map<string, string>>(new Map());
 
   const load = async (isSilent = false) => {
     if (!id) {
@@ -87,6 +98,35 @@ export function ProjectDetail() {
       setProject(p.project ?? null);
       setDeployments(d.deployments);
       setJobs(j.jobs);
+
+      // Notification check on status transition for each deployment
+      if (previousStatusMapRef.current.size > 0) {
+        for (const dep of d.deployments) {
+          const prev = previousStatusMapRef.current.get(dep.id);
+          if (prev && prev !== dep.status) {
+            const versionStr = `v${dep.version}`;
+            const projName = p.project?.name ?? "Project";
+            if (dep.status === "ACTIVE") {
+              const msg = `[ OK ] ${projName} ${versionStr} is now LIVE`;
+              toast.success(msg);
+              notifyUser(msg, { body: `Deployment ${versionStr} succeeded on port ${dep.port}.` });
+            } else if (dep.status === "FAILED") {
+              const msg = `[ FAILED ] ${projName} ${versionStr} deployment failed`;
+              toast.error(msg);
+              notifyUser(msg, { body: dep.errorMessage || "Deployment build or health check failed." });
+            } else if (dep.status === "ROLLED_BACK") {
+              const msg = `[ ROLLBACK ] ${projName} rolled back ${versionStr}`;
+              toast.info(msg);
+              notifyUser(msg, { body: `Deployment ${versionStr} was rolled back.` });
+            }
+          }
+        }
+      }
+      const nextStatusMap = new Map<string, string>();
+      for (const dep of d.deployments) {
+        nextStatusMap.set(dep.id, dep.status);
+      }
+      previousStatusMapRef.current = nextStatusMap;
 
       try {
         const envData = await getProjectEnvironments(id);
@@ -283,6 +323,9 @@ export function ProjectDetail() {
           ) : null}
           <Button variant="outline" size="sm" className="border-rose-900/50 text-rose-400 hover:bg-rose-950/40 text-xs font-sans" onClick={() => void onRollback()}>
             Rollback
+          </Button>
+          <Button variant="outline" size="sm" className="border-neutral-700 text-neutral-200 hover:bg-neutral-800 text-xs font-sans" onClick={() => void onDeploy()}>
+            Redeploy
           </Button>
           <Button size="sm" className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs font-sans" onClick={() => void onDeploy()}>
             Deploy Production
@@ -500,13 +543,14 @@ export function ProjectDetail() {
                 <TableHead>Host port</TableHead>
                 <TableHead>App port</TableHead>
                 <TableHead>Container</TableHead>
-                <TableHead className="pr-6">When</TableHead>
+                <TableHead>When</TableHead>
+                <TableHead className="pr-6 text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {deployments.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="py-10 text-center text-muted-foreground">
+                  <TableCell colSpan={9} className="py-10 text-center text-muted-foreground">
                     No deployments yet. Run Deploy above.
                   </TableCell>
                 </TableRow>
@@ -514,6 +558,7 @@ export function ProjectDetail() {
                 deployments.map((d) => {
                   const hp = d.port;
                   const u = publicServiceUrl(hp);
+                  const matchedJobId = d.jobId ?? jobs.find((j) => j.deploymentId === d.id)?.id;
                   return (
                     <TableRow key={d.id} className="border-border/40">
                       <TableCell className="pl-6 font-mono">v{d.version}</TableCell>
@@ -540,7 +585,39 @@ export function ProjectDetail() {
                       </TableCell>
                       <TableCell className="font-mono text-sm tabular-nums">{project.appPort}</TableCell>
                       <TableCell className="max-w-[180px] truncate font-mono text-xs text-muted-foreground">{d.containerName}</TableCell>
-                      <TableCell className="pr-6 text-sm text-muted-foreground">{timeAgo(d.createdAt)}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{timeAgo(d.createdAt)}</TableCell>
+                      <TableCell className="pr-6 text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger
+                            className={buttonVariants({ variant: "outline", size: "sm", className: "h-8 px-2" })}
+                          >
+                            ⋯
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {matchedJobId ? (
+                              <DropdownMenuItem onSelect={() => navigate(`/projects/${project.id}/deploy/${matchedJobId}`)}>
+                                View logs
+                              </DropdownMenuItem>
+                            ) : null}
+                            <DropdownMenuItem
+                              onSelect={() => {
+                                if (d.environmentId) {
+                                  void onDeployToEnvironment(d.environmentId);
+                                } else {
+                                  void onDeploy();
+                                }
+                              }}
+                            >
+                              Redeploy
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => void copyText(d.containerName, "Container name")}
+                            >
+                              Copy container
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
                     </TableRow>
                   );
                 })
