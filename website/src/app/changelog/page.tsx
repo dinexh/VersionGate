@@ -44,9 +44,47 @@ interface ProcessedRelease {
 
 const FALLBACK_RELEASES: ProcessedRelease[] = [
   {
-    version: "v2.4.1",
+    version: "v2.5.0",
     date: "September 12, 2026",
     isLatest: true,
+    summary:
+      "Per-deployment log viewer, multi-stage webhook auto-deployment deduplication, deployment status notifications, and one-click redeploy actions.",
+    categories: [
+      {
+        title: "Deployment & Logs",
+        badge: "NEW",
+        items: [
+          {
+            title: "Per-deployment build and run logs",
+            description:
+              "Deployments now attach their associated jobId and provide a direct 'View logs' action in the Deployments table, routing directly to the corresponding build output stream.",
+            command: "GET /api/v1/projects/:id/deployments",
+          },
+          {
+            title: "Deployment status notifications and redeploy option",
+            description:
+              "Integrated real-time in-app toast and desktop browser notifications when deployments transition to ACTIVE or FAILED. Added one-click Redeploy buttons to the header bar and deployment actions menu.",
+          },
+        ],
+      },
+      {
+        title: "Webhooks & Automation",
+        badge: "FIX",
+        items: [
+          {
+            title: "Multi-stage webhook deduplication & branch switching",
+            description:
+              "Fixed git branch switching by avoiding single-branch clone restrictions, enabling robust multi-environment git checkouts. Resolved multi-stage webhook collision by prioritizing production when multiple environments track the same branch.",
+            command: "git fetch origin <branch> && git checkout -B <branch> origin/<branch>",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    version: "v2.4.1",
+    date: "September 12, 2026",
+    isLatest: false,
     summary:
       "Reliable plain HTML & static site zero-downtime deployments: fixed Nginx Dockerfile generator syntax, added native /health route responses, clean URL routing, and index.htm support.",
     categories: [

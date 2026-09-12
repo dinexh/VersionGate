@@ -58,6 +58,28 @@ const CAPABILITIES: Capability[] = [
     badge: "Core Engine",
   },
   {
+    id: "cap-deploylogs",
+    category: "Deployment",
+    title: "Per-Deployment Logs & Direct Linking",
+    command: "GET /api/v1/projects/:id/deployments",
+    description:
+      "Direct deployment-to-job correlation linking version records directly to live and historical build streams.",
+    details:
+      "Deployment records return associated jobId via relational join with jobs. Deployment tables provide one-click 'View logs' access directly into the corresponding execution log terminal.",
+    badge: "NEW",
+  },
+  {
+    id: "cap-notifications-redeploy",
+    category: "Deployment",
+    title: "Deployment Status Notifications & Redeploy",
+    command: "POST /api/v1/deploy",
+    description:
+      "Real-time visual and desktop notifications on deployment transitions (LIVE, FAILED, ROLLBACK) with one-click redeploy.",
+    details:
+      "State transition tracking dispatches toast notifications and browser Web Notifications upon completion. Dedicated Redeploy actions allow immediate re-execution for any environment or past deployment record.",
+    badge: "NEW",
+  },
+  {
     id: "cap-projectdomain",
     category: "Networking",
     title: "Project Custom Domains",
