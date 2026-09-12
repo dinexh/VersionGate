@@ -55,11 +55,23 @@ const FALLBACK_RELEASES: ProcessedRelease[] = [
         badge: "NEW",
         items: [
           {
-            title: "Project Settings Editor",
+            title: "Project Settings Editor & Save + Redeploy",
             description:
-              "Dynamically edit repository URL, default branch, build context directory, app port, and root environment variables from the project detail settings modal.",
+              "Dynamically edit repository URL, default branch, build context directory, app port, and root environment variables with one-click Save & Redeploy support.",
             command: "PATCH /api/v1/projects/:id",
-            prNumber: 201,
+            prNumber: 203,
+          },
+          {
+            title: "Vercel-Style Bulk Environment Paste & Auto-Parser",
+            description:
+              "Paste raw .env blocks, multi-line key-value declarations, or export syntax into any environment variable field to auto-split them into clean form rows without losing state.",
+            prNumber: 203,
+          },
+          {
+            title: "Self-Hosted Zero-Dependency GitHub Relay Registry",
+            description:
+              "Website relay now automatically falls back to local persistent storage when external Upstash Redis is not provisioned.",
+            prNumber: 203,
           },
           {
             title: "Vercel-Style Stage Preview URLs",

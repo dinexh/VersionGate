@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type ClipboardEvent, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Dialog,
@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { triggerDeploy, updateProject, type Project } from "@/lib/api";
+import { handleEnvPaste } from "@/lib/env-parser";
 
 export function EditProjectModal({
   open,
@@ -34,8 +35,10 @@ export function EditProjectModal({
   const [healthPath, setHealthPath] = useState(project.healthPath);
   const [envPairs, setEnvPairs] = useState<{ key: string; value: string }[]>([]);
 
+  const wasOpenRef = useRef(false);
+
   useEffect(() => {
-    if (open) {
+    if (open && !wasOpenRef.current) {
       setRepoUrl(project.repoUrl);
       setBranch(project.branch);
       setBuildContext(project.buildContext);
@@ -45,6 +48,7 @@ export function EditProjectModal({
       const pairs = Object.entries(rawEnv).map(([k, v]) => ({ key: k, value: String(v) }));
       setEnvPairs(pairs.length > 0 ? pairs : [{ key: "", value: "" }]);
     }
+    wasOpenRef.current = open;
   }, [open, project]);
 
   const addEnvPair = () => {
@@ -220,12 +224,24 @@ export function EditProjectModal({
                     placeholder="KEY"
                     value={p.key}
                     onChange={(e) => updateEnvPair(idx, "key", e.target.value)}
+                    onPaste={(e: ClipboardEvent<HTMLInputElement>) => {
+                      const text = e.clipboardData.getData("text");
+                      if (handleEnvPaste(text, idx, setEnvPairs)) {
+                        e.preventDefault();
+                      }
+                    }}
                     className="font-mono text-xs uppercase"
                   />
                   <Input
                     placeholder="VALUE"
                     value={p.value}
                     onChange={(e) => updateEnvPair(idx, "value", e.target.value)}
+                    onPaste={(e: ClipboardEvent<HTMLInputElement>) => {
+                      const text = e.clipboardData.getData("text");
+                      if (handleEnvPaste(text, idx, setEnvPairs)) {
+                        e.preventDefault();
+                      }
+                    }}
                     className="font-mono text-xs"
                   />
                   <Button
