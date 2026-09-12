@@ -90,6 +90,7 @@ export interface Deployment {
   projectId: string;
   environmentId?: string;
   promotedFromId?: string | null;
+  jobId?: string | null;
   createdAt: string;
   updatedAt: string;
 }

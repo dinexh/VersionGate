@@ -1,6 +1,6 @@
 import { eq, and, desc, lt, max } from "drizzle-orm";
 import { getDb } from "../db/client";
-import { deployments, environments, projects, DeploymentSelect, ProjectSelect } from "../db/schema";
+import { deployments, environments, projects, jobs, DeploymentSelect, ProjectSelect } from "../db/schema";
 
 export type DeploymentStatusType = "PENDING" | "DEPLOYING" | "ACTIVE" | "FAILED" | "ROLLED_BACK";
 export type DeploymentColorType = "BLUE" | "GREEN";
@@ -94,19 +94,23 @@ export class DeploymentRepository {
       .orderBy(desc(deployments.createdAt));
   }
 
-  async findAllForProject(projectId: string): Promise<(DeploymentSelect & { projectId: string })[]> {
+  async findAllForProject(
+    projectId: string
+  ): Promise<(DeploymentSelect & { projectId: string; jobId?: string | null })[]> {
     const db = getDb();
     const rows = await db
       .select({
         deployment: deployments,
         projectId: environments.projectId,
+        jobId: jobs.id,
       })
       .from(deployments)
       .innerJoin(environments, eq(deployments.environmentId, environments.id))
+      .leftJoin(jobs, eq(deployments.id, jobs.deploymentId))
       .where(eq(environments.projectId, projectId))
       .orderBy(desc(deployments.createdAt));
 
-    return rows.map((r) => ({ ...r.deployment, projectId: r.projectId }));
+    return rows.map((r) => ({ ...r.deployment, projectId: r.projectId, jobId: r.jobId ?? null }));
   }
 
   async getNextVersionForEnvironment(environmentId: string): Promise<number> {
@@ -139,18 +143,20 @@ export class DeploymentRepository {
     return rows.map((r) => ({ ...r.deployment, project: r.project }));
   }
 
-  async findAll(): Promise<(DeploymentSelect & { projectId: string })[]> {
+  async findAll(): Promise<(DeploymentSelect & { projectId: string; jobId?: string | null })[]> {
     const db = getDb();
     const rows = await db
       .select({
         deployment: deployments,
         projectId: environments.projectId,
+        jobId: jobs.id,
       })
       .from(deployments)
       .innerJoin(environments, eq(deployments.environmentId, environments.id))
+      .leftJoin(jobs, eq(deployments.id, jobs.deploymentId))
       .orderBy(desc(deployments.createdAt));
 
-    return rows.map((r) => ({ ...r.deployment, projectId: r.projectId }));
+    return rows.map((r) => ({ ...r.deployment, projectId: r.projectId, jobId: r.jobId ?? null }));
   }
 
   async updateStatus(

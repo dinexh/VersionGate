@@ -30,6 +30,7 @@ const deploymentSchema = {
     environmentId: { type: "string" },
     projectId: { type: "string" },
     promotedFromId: { type: "string", nullable: true },
+    jobId: { type: "string", nullable: true },
     createdAt: { type: "string" },
     updatedAt: { type: "string" },
   },
