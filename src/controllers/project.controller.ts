@@ -10,6 +10,7 @@ import { config } from "../config/env";
 import { logger } from "../utils/logger";
 import { validateEnvObject } from "../utils/env";
 import { ProjectDomainService } from "../services/project-domain.service";
+import { projectAnalyticsService } from "../services/project-analytics.service";
 
 const projectRepo = new ProjectRepository();
 const deploymentRepo = new DeploymentRepository();
@@ -35,11 +36,14 @@ interface UpdateEnvBody {
 }
 
 interface UpdateProjectBody {
+  name?: string;
+  repoUrl?: string;
   branch?: string;
   buildContext?: string;
   appPort?: number;
   healthPath?: string;
   basePort?: number;
+  env?: Record<string, string>;
 }
 
 export async function createProjectHandler(
@@ -156,6 +160,12 @@ export async function updateProjectHandler(
   if (!project) {
     return reply.code(404).send({ error: "NotFound", message: "Project not found" });
   }
+  if (req.body.env !== undefined) {
+    const envError = validateEnvObject(req.body.env);
+    if (envError) {
+      return reply.code(400).send({ error: "ValidationError", message: envError });
+    }
+  }
   const updated = await projectRepo.update(id, req.body);
   logger.info({ projectId: id }, "API: project updated");
   reply.code(200).send({ project: updated });
@@ -259,3 +269,18 @@ export async function updateProjectEnvHandler(
   logger.info({ projectId: id, envKeys: Object.keys(env).length }, "API: project env updated");
   reply.code(200).send({ project: updated });
 }
+
+export async function getProjectAnalyticsHandler(
+  req: FastifyRequest<{ Params: ProjectParams }>,
+  reply: FastifyReply
+): Promise<void> {
+  const { id } = req.params;
+  const project = await projectRepo.findById(id);
+  if (!project) {
+    return reply.code(404).send({ error: "NotFound", message: "Project not found" });
+  }
+
+  const analytics = await projectAnalyticsService.getAnalytics(id);
+  reply.code(200).send({ analytics });
+}
+

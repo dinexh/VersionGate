@@ -88,6 +88,7 @@ export interface Deployment {
   errorMessage?: string | null;
   /** Derived from the parent environment for dashboard filtering */
   projectId: string;
+  projectName?: string | null;
   environmentId?: string;
   promotedFromId?: string | null;
   jobId?: string | null;
@@ -223,6 +224,44 @@ export function createProject(data: {
   env?: Record<string, string>;
 }): Promise<{ project: Project }> {
   return request("POST", "/projects", data);
+}
+
+export function updateProject(
+  id: string,
+  data: {
+    name?: string;
+    repoUrl?: string;
+    branch?: string;
+    buildContext?: string;
+    appPort?: number;
+    healthPath?: string;
+    basePort?: number;
+    env?: Record<string, string>;
+  }
+): Promise<{ project: Project }> {
+  return request("PATCH", `/projects/${id}`, data);
+}
+
+export function updateProjectEnv(
+  id: string,
+  env: Record<string, string>
+): Promise<{ project: Project }> {
+  return request("PATCH", `/projects/${id}/env`, { env });
+}
+
+export interface ProjectAnalytics {
+  projectId: string;
+  totalHits: number;
+  status2xx: number;
+  status3xx: number;
+  status4xx: number;
+  status5xx: number;
+  avgLatencyMs: number;
+  recentHitsByHour: { hour: string; count: number }[];
+}
+
+export function getProjectAnalytics(id: string): Promise<{ analytics: ProjectAnalytics }> {
+  return request("GET", `/projects/${id}/analytics`);
 }
 
 export function deleteProject(id: string): Promise<void> {
@@ -623,6 +662,16 @@ export function linkGithubInstallation(installationId: string): Promise<{
     "POST",
     "/github/installation/link",
     { installationId },
+    githubApiBase()
+  );
+}
+
+export function deleteGithubInstallation(installationId?: string): Promise<{ success: boolean; message: string }> {
+  const q = installationId ? `?installationId=${encodeURIComponent(installationId)}` : "";
+  return request<{ success: boolean; message: string }>(
+    "DELETE",
+    `/github/installation${q}`,
+    undefined,
     githubApiBase()
   );
 }

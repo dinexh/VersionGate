@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { DonutChart } from "@/components/charts/DonutChart";
 import { ActivityLineChart, type ActivityDayPoint } from "@/components/charts/ActivityLineChart";
 import { Link } from "react-router-dom";
-import { listAllJobs, type JobRecord } from "@/lib/api";
+import { listAllJobs, getAllDeployments, type JobRecord, type Deployment } from "@/lib/api";
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -77,6 +77,8 @@ function exportJobsCsv(jobs: JobRecord[]) {
 
 export function Activity() {
   const [jobs, setJobs] = useState<JobRecord[]>([]);
+  const [deployments, setDeployments] = useState<Deployment[]>([]);
+  const [activeTab, setActiveTab] = useState<"jobs" | "deployments">("jobs");
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -84,11 +86,15 @@ export function Activity() {
 
   const load = useCallback(async () => {
     try {
-      const r = await listAllJobs({ limit: 200 });
-      setJobs(r.jobs);
-      setTotal(r.total);
+      const [rJobs, rDeps] = await Promise.all([
+        listAllJobs({ limit: 200 }),
+        getAllDeployments().catch(() => ({ deployments: [] })),
+      ]);
+      setJobs(rJobs.jobs);
+      setDeployments(rDeps.deployments);
+      setTotal(rJobs.total);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to load jobs");
+      toast.error(e instanceof Error ? e.message : "Failed to load activity");
     } finally {
       setLoading(false);
     }
@@ -212,20 +218,47 @@ export function Activity() {
       ) : null}
 
       <div>
-        <div className="pb-4 flex flex-col gap-1">
-          <h2 className="text-lg font-semibold">Jobs history</h2>
-          <p className="text-sm text-muted-foreground">
-            Open a row for streamed logs. Pending work requires <code className="rounded bg-muted px-1 py-0.5 text-xs">versiongate-worker</code>.
-          </p>
+        <div className="pb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-1">
+            <h2 className="text-lg font-semibold">{activeTab === "jobs" ? "Jobs history" : "All Deployments"}</h2>
+            <p className="text-sm text-muted-foreground">
+              {activeTab === "jobs"
+                ? "Open a row for streamed logs. Pending work requires versiongate-worker."
+                : "Active and historical deployment records across all projects with version logs."}
+            </p>
+          </div>
+          <div className="flex gap-1 rounded-lg border border-border/80 bg-muted/30 p-0.5 self-start">
+            <button
+              type="button"
+              onClick={() => setActiveTab("jobs")}
+              className={cn(
+                "rounded-md px-3 py-1 text-xs font-medium transition-colors",
+                activeTab === "jobs" ? "bg-card text-foreground" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              Jobs ({jobs.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("deployments")}
+              className={cn(
+                "rounded-md px-3 py-1 text-xs font-medium transition-colors",
+                activeTab === "deployments" ? "bg-card text-foreground" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              Deployments ({deployments.length})
+            </button>
+          </div>
         </div>
+
         <div className="pt-0 border-t border-border">
-          {loading && jobs.length === 0 ? (
-            <div className="space-y-2 px-6 pb-6">
+          {loading && (activeTab === "jobs" ? jobs.length === 0 : deployments.length === 0) ? (
+            <div className="space-y-2 px-6 pb-6 pt-4">
               <Skeleton className="h-10 w-full" />
               <Skeleton className="h-10 w-full" />
               <Skeleton className="h-10 w-full" />
             </div>
-          ) : (
+          ) : activeTab === "jobs" ? (
             <Table>
               <TableHeader>
                 <TableRow className="border-border/50 hover:bg-transparent">
@@ -280,10 +313,78 @@ export function Activity() {
                 )}
               </TableBody>
             </Table>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow className="border-border/50 hover:bg-transparent">
+                  <TableHead className="pl-6">Version</TableHead>
+                  <TableHead>Project</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Container / Slot</TableHead>
+                  <TableHead>Host Port</TableHead>
+                  <TableHead>When</TableHead>
+                  <TableHead className="pr-6 text-right">Logs</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {deployments.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="py-16 text-center text-muted-foreground">
+                      No deployments recorded yet.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  deployments.map((d) => (
+                    <TableRow key={d.id} className="border-border/40">
+                      <TableCell className="pl-6 font-mono text-sm font-medium">v{d.version}</TableCell>
+                      <TableCell className="font-medium">
+                        <Link to={`/projects/${d.projectId}`} className="text-primary hover:underline">
+                          {d.projectName ?? d.projectId.slice(0, 8)}
+                        </Link>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={d.status === "ACTIVE" ? "default" : d.status === "FAILED" ? "destructive" : "secondary"}
+                          className="font-mono text-xs"
+                        >
+                          {d.status}
+                        </Badge>
+                        {d.errorMessage ? (
+                          <p className="mt-1 max-w-xs truncate text-xs text-rose-400" title={d.errorMessage}>
+                            {d.errorMessage}
+                          </p>
+                        ) : null}
+                      </TableCell>
+                      <TableCell className="font-mono text-xs text-muted-foreground">
+                        {d.containerName} ({d.color})
+                      </TableCell>
+                      <TableCell className="font-mono text-sm">{d.port}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {new Date(d.createdAt).toLocaleString()}
+                      </TableCell>
+                      <TableCell className="pr-6 text-right">
+                        {d.jobId ? (
+                          <Link
+                            to={`/projects/${d.projectId}/deploy/${d.jobId}`}
+                            className={buttonVariants({ variant: "outline", size: "sm" })}
+                          >
+                            View log
+                          </Link>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
           )}
-          {!loading && total > 0 ? (
+          {!loading && (activeTab === "jobs" ? total > 0 : deployments.length > 0) ? (
             <p className="border-t border-border/40 px-6 py-3 text-xs text-muted-foreground">
-              Showing {filteredJobs.length} of {total} jobs (filter applies to loaded sample)
+              {activeTab === "jobs"
+                ? `Showing ${filteredJobs.length} of ${total} jobs`
+                : `Showing ${deployments.length} total deployments across all projects`}
             </p>
           ) : null}
         </div>

@@ -29,6 +29,7 @@ const deploymentSchema = {
     errorMessage: { type: "string", nullable: true },
     environmentId: { type: "string" },
     projectId: { type: "string" },
+    projectName: { type: "string", nullable: true },
     promotedFromId: { type: "string", nullable: true },
     jobId: { type: "string", nullable: true },
     createdAt: { type: "string" },

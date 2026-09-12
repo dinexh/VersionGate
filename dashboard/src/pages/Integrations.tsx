@@ -11,6 +11,7 @@ import {
   getGithubInstallation,
   getGithubIntegrationStatus,
   linkGithubInstallation,
+  deleteGithubInstallation,
   type GithubInstallationSummary,
 } from "@/lib/api";
 import { Separator } from "@/components/ui/separator";
@@ -151,6 +152,20 @@ export function Integrations() {
     }
   };
 
+  const handleDisconnect = async (installationId?: string) => {
+    const label = installationId ? `installation #${installationId}` : "all connected GitHub installations";
+    if (!window.confirm(`Are you sure you want to disconnect ${label}?`)) {
+      return;
+    }
+    try {
+      await deleteGithubInstallation(installationId);
+      toast.success(`[ OK ] Disconnected ${label}`);
+      await fetchStatus();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to disconnect installation");
+    }
+  };
+
   const connected = primaryInstallation !== null;
 
   return (
@@ -258,6 +273,15 @@ export function Integrations() {
                   <a href={INSTALL_HREF} className={cn(buttonVariants({ variant: "secondary", size: "sm" }), "font-sans text-xs")}>
                     Add another org
                   </a>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-neutral-400 hover:text-rose-400 text-xs font-sans"
+                    onClick={() => void handleDisconnect()}
+                  >
+                    Disconnect
+                  </Button>
                 </div>
               </div>
               {installationsList.length > 1 ? (
@@ -273,9 +297,20 @@ export function Integrations() {
                           key={i.installationId}
                           className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-muted/30 px-3 py-2"
                         >
-                          <span className="font-mono font-medium">{i.githubAccountLogin}</span>
-                          <span className="text-xs capitalize text-muted-foreground font-mono">{i.githubAccountType}</span>
-                          <span className="font-mono text-xs text-muted-foreground">{i.installationId}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-medium">{i.githubAccountLogin}</span>
+                            <span className="text-xs capitalize text-muted-foreground font-mono">{i.githubAccountType}</span>
+                            <span className="font-mono text-xs text-muted-foreground">({i.installationId})</span>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-xs text-neutral-400 hover:text-rose-400"
+                            onClick={() => void handleDisconnect(i.installationId)}
+                          >
+                            Remove
+                          </Button>
                         </li>
                       ))}
                     </ul>

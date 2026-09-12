@@ -206,7 +206,7 @@ export class DeploymentService {
 
   async getAllDeployments(
     projectId?: string
-  ): Promise<(DeploymentSelect & { projectId: string; jobId?: string | null })[]> {
+  ): Promise<(DeploymentSelect & { projectId: string; projectName?: string; jobId?: string | null })[]> {
     if (projectId) {
       return this.repo.findAllForProject(projectId);
     }
