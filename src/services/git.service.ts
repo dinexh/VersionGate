@@ -59,7 +59,6 @@ export class GitService {
       await execFileAsync("git", [
         "clone",
         "--branch", branch,
-        "--single-branch",
         authUrl,
         repoDir,
       ]);
@@ -71,7 +70,8 @@ export class GitService {
 
   private async pullLatest(_project: ProjectSelect, repoDir: string, branch: string): Promise<void> {
     try {
-      await execFileAsync("git", ["-C", repoDir, "fetch", "origin"]);
+      await execFileAsync("git", ["-C", repoDir, "fetch", "origin", branch]);
+      await execFileAsync("git", ["-C", repoDir, "checkout", "-B", branch, `origin/${branch}`]);
       await execFileAsync("git", [
         "-C", repoDir,
         "reset", "--hard", `origin/${branch}`,

@@ -621,7 +621,7 @@ async function handleGithubPushDeploy(
   const triggered: string[] = [];
   for (const project of matches) {
     const environments = await envRepo.findAllForProject(project.id);
-    const matchingEnvs = pushedBranch
+    let matchingEnvs = pushedBranch
       ? environments.filter((e) => e.branch === pushedBranch)
       : environments.filter((e) => e.name === "production");
 
@@ -629,6 +629,14 @@ async function handleGithubPushDeploy(
       const defaultEnv = await envRepo.findDefaultForProject(project.id);
       if (defaultEnv && (!pushedBranch || defaultEnv.branch === pushedBranch)) {
         matchingEnvs.push(defaultEnv);
+      }
+    }
+
+    // If multiple environments match the same branch (e.g. default setup), prioritize production to prevent duplicate runs
+    if (matchingEnvs.length > 1) {
+      const prod = matchingEnvs.find((e) => e.name === "production");
+      if (prod) {
+        matchingEnvs = [prod];
       }
     }
 
