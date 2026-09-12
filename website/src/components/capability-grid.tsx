@@ -47,6 +47,17 @@ const CAPABILITIES: Capability[] = [
     badge: "Engine",
   },
   {
+    id: "cap-static-html",
+    category: "Deployment",
+    title: "Static HTML & SPA Sites",
+    command: 'POST /api/v1/deploy  {"projectId":"...","environmentId":"..."}',
+    description:
+      "Automated Nginx containerization for plain HTML repositories and single-page apps with zero build configuration.",
+    details:
+      "Detects index.html or index.htm at repo root or build context. Auto-generates an Nginx 1.25 container with dedicated /health endpoints, clean URL extension matching ($uri.html), and SPA fallback routing.",
+    badge: "Core Engine",
+  },
+  {
     id: "cap-projectdomain",
     category: "Networking",
     title: "Project Custom Domains",

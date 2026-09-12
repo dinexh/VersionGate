@@ -85,4 +85,43 @@ describe("Dockerfile Generator", () => {
       await fs.rm(tmpDir, { recursive: true, force: true });
     }
   });
+
+  test("generates Dockerfile for static HTML index.html project with health check and routing", async () => {
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "vg-test-html-"));
+    try {
+      await fs.writeFile(path.join(tmpDir, "index.html"), "<!DOCTYPE html><html><body>Hello</body></html>", "utf-8");
+
+      const buildDir = await ensureDockerfile(tmpDir, 3000);
+      expect(buildDir).toBe(tmpDir);
+
+      const content = await fs.readFile(path.join(tmpDir, "Dockerfile"), "utf-8");
+      expect(content).toContain("FROM nginx:1.25-alpine");
+      expect(content).toContain("COPY . /usr/share/nginx/html");
+      expect(content).toContain("listen 3000;");
+      expect(content).toContain("location = /health");
+      expect(content).toContain('return 200 "healthy";');
+      expect(content).toContain("try_files $uri $uri/ $uri.html /index.html =404;");
+      expect(content).toContain("EXPOSE 3000");
+      expect(content).toContain('CMD ["nginx", "-g", "daemon off;"]');
+    } finally {
+      await fs.rm(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test("generates Dockerfile for static HTML index.htm project", async () => {
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "vg-test-htm-"));
+    try {
+      await fs.writeFile(path.join(tmpDir, "index.htm"), "<!DOCTYPE html><html><body>Hello htm</body></html>", "utf-8");
+
+      const buildDir = await ensureDockerfile(tmpDir, 80);
+      expect(buildDir).toBe(tmpDir);
+
+      const content = await fs.readFile(path.join(tmpDir, "Dockerfile"), "utf-8");
+      expect(content).toContain("FROM nginx:1.25-alpine");
+      expect(content).toContain("listen 80;");
+      expect(content).toContain("EXPOSE 80");
+    } finally {
+      await fs.rm(tmpDir, { recursive: true, force: true });
+    }
+  });
 });

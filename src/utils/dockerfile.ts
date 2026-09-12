@@ -107,12 +107,9 @@ async function tryGenerateDockerfile(repoDir: string, appPort: number): Promise<
     // not Go
   }
 
-  // 4. Static HTML / no build step (index.html at repo root of this directory)
-  try {
-    await fs.access(path.join(repoDir, "index.html"));
+  // 4. Static HTML / no build step (index.html or index.htm at root of this directory)
+  if ((await fileExists(repoDir, "index.html")) || (await fileExists(repoDir, "index.htm"))) {
     return buildStaticHtmlDockerfile(appPort);
-  } catch {
-    // not a simple static site in this folder
   }
 
   return null;
@@ -259,30 +256,34 @@ function buildPythonDockerfile(appPort: number): string {
 
 // ── Static HTML (nginx) ─────────────────────────────────────────────────────────
 
-/** Serves files from the image root with nginx. Requires `index.html` in the build context. Use app port 80 unless you need another port. */
+/** Serves files from the image root with nginx. Requires `index.html` or `index.htm` in the build context. */
 function buildStaticHtmlDockerfile(appPort: number): string {
   const p = String(appPort);
   return lines([
-    "# syntax=docker/dockerfile:1",
     AUTO_GENERATED_MARKER,
     "FROM nginx:1.25-alpine",
     "",
     "COPY . /usr/share/nginx/html",
-    "RUN rm -f /etc/nginx/conf.d/default.conf",
-    "RUN cat > /etc/nginx/conf.d/default.conf <<'EOF'",
-    "server {",
-    `    listen ${p};`,
-    "    server_name localhost;",
-    "    root /usr/share/nginx/html;",
-    "    index index.html;",
-    "    location / {",
-    "        try_files $uri $uri/ =404;",
-    "    }",
-    "}",
-    "EOF",
+    "RUN rm -f /etc/nginx/conf.d/default.conf && \\",
+    "    printf '%s\\n' \\",
+    "    'server {' \\",
+    `    '    listen ${p};' \\`,
+    "    '    server_name localhost;' \\",
+    "    '    root /usr/share/nginx/html;' \\",
+    "    '    index index.html index.htm;' \\",
+    "    '    location = /health {' \\",
+    "    '        access_log off;' \\",
+    "    '        add_header Content-Type text/plain;' \\",
+    "    '        return 200 \"healthy\";' \\",
+    "    '    }' \\",
+    "    '    location / {' \\",
+    "    '        try_files $uri $uri/ $uri.html /index.html =404;' \\",
+    "    '    }' \\",
+    "    '}' > /etc/nginx/conf.d/default.conf",
     "",
     `EXPOSE ${p}`,
     "",
+    'CMD ["nginx", "-g", "daemon off;"]',
   ]);
 }
 
