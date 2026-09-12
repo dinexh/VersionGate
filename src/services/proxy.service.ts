@@ -2,9 +2,11 @@ import { eq, and, desc } from "drizzle-orm";
 import { getDb } from "../db/client";
 import { projects, environments, deployments } from "../db/schema";
 import { logger } from "../utils/logger";
+import { projectAnalyticsService } from "./project-analytics.service";
 import type { FastifyRequest, FastifyReply } from "fastify";
 
 export interface ResolvedProxyTarget {
+  projectId: string;
   projectName: string;
   environmentName: string;
   port: number;
@@ -66,6 +68,7 @@ export class ProxyService {
     const proxyPrefix = `/p/${project.name}/${environment.name}`;
 
     return {
+      projectId: project.id,
       projectName: project.name,
       environmentName: environment.name,
       port: depRows[0].port,
@@ -134,11 +137,16 @@ export class ProxyService {
         ? (typeof req.body === "string" ? req.body : JSON.stringify(req.body))
         : undefined;
 
+      const startTime = Date.now();
       const response = await fetch(targetUrl, {
         method,
         headers,
         body: bodyPayload,
       });
+      const latencyMs = Math.max(1, Date.now() - startTime);
+
+      // Record hit telemetry asynchronously
+      void projectAnalyticsService.recordHit(target.projectId, response.status, latencyMs);
 
       reply.code(response.status);
 

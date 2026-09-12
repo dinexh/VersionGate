@@ -10,6 +10,7 @@ import { config } from "../config/env";
 import { logger } from "../utils/logger";
 import { validateEnvObject } from "../utils/env";
 import { ProjectDomainService } from "../services/project-domain.service";
+import { projectAnalyticsService } from "../services/project-analytics.service";
 
 const projectRepo = new ProjectRepository();
 const deploymentRepo = new DeploymentRepository();
@@ -268,3 +269,18 @@ export async function updateProjectEnvHandler(
   logger.info({ projectId: id, envKeys: Object.keys(env).length }, "API: project env updated");
   reply.code(200).send({ project: updated });
 }
+
+export async function getProjectAnalyticsHandler(
+  req: FastifyRequest<{ Params: ProjectParams }>,
+  reply: FastifyReply
+): Promise<void> {
+  const { id } = req.params;
+  const project = await projectRepo.findById(id);
+  if (!project) {
+    return reply.code(404).send({ error: "NotFound", message: "Project not found" });
+  }
+
+  const analytics = await projectAnalyticsService.getAnalytics(id);
+  reply.code(200).send({ analytics });
+}
+

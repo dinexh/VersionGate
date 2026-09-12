@@ -248,6 +248,21 @@ export function updateProjectEnv(
   return request("PATCH", `/projects/${id}/env`, { env });
 }
 
+export interface ProjectAnalytics {
+  projectId: string;
+  totalHits: number;
+  status2xx: number;
+  status3xx: number;
+  status4xx: number;
+  status5xx: number;
+  avgLatencyMs: number;
+  recentHitsByHour: { hour: string; count: number }[];
+}
+
+export function getProjectAnalytics(id: string): Promise<{ analytics: ProjectAnalytics }> {
+  return request("GET", `/projects/${id}/analytics`);
+}
+
 export function deleteProject(id: string): Promise<void> {
   return request("DELETE", `/projects/${id}`);
 }

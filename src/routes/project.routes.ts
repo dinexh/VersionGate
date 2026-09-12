@@ -8,6 +8,7 @@ import {
   updateProjectHandler,
   updateProjectEnvHandler,
   generatePipelineHandler,
+  getProjectAnalyticsHandler,
 } from "../controllers/project.controller";
 import {
   listProjectDomainsHandler,
@@ -169,6 +170,10 @@ export async function projectRoutes(app: FastifyInstance): Promise<void> {
       },
     },
     handler: updateProjectEnvHandler,
+  });
+
+  app.get("/projects/:id/analytics", {
+    handler: getProjectAnalyticsHandler,
   });
 
   app.post("/projects/:id/generate-pipeline", {

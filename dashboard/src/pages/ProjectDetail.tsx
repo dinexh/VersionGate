@@ -6,6 +6,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   getDeployments,
   getProject,
+  getProjectAnalytics,
   getProjectEnvironments,
   listProjectDomains,
   listProjectJobs,
@@ -15,6 +16,7 @@ import {
   type EnvironmentSummary,
   type JobRecord,
   type Project,
+  type ProjectAnalytics,
   type ProjectDomain,
 } from "@/lib/api";
 import { EnvironmentChain } from "@/components/badges/EnvironmentChain";
@@ -76,6 +78,7 @@ export function ProjectDetail() {
   const [environmentsError, setEnvironmentsError] = useState<string | null>(null);
   const [jobs, setJobs] = useState<JobRecord[]>([]);
   const [customDomains, setCustomDomains] = useState<ProjectDomain[]>([]);
+  const [analytics, setAnalytics] = useState<ProjectAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -144,6 +147,13 @@ export function ProjectDetail() {
         setCustomDomains(domainData.domains ?? []);
       } catch {
         setCustomDomains([]);
+      }
+
+      try {
+        const analyticsData = await getProjectAnalytics(id);
+        setAnalytics(analyticsData.analytics);
+      } catch {
+        // Analytics load failure is non-blocking
       }
     } catch (e) {
       if (!isSilent) {
@@ -412,6 +422,42 @@ export function ProjectDetail() {
           </Card>
         </div>
       ) : null}
+
+      <Card className="border-border bg-card">
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base">Project Traffic & Telemetry</CardTitle>
+            <span className="font-mono text-xs text-muted-foreground">Rolling 24h</span>
+          </div>
+          <CardDescription>Live traffic metrics and reverse proxy response distributions.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 sm:grid-cols-4">
+            <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
+              <span className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Total Requests</span>
+              <p className="mt-1 font-mono text-2xl font-bold text-foreground">{analytics?.totalHits ?? 0}</p>
+            </div>
+            <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
+              <span className="font-mono text-[11px] uppercase tracking-wider text-emerald-400">Success (2xx)</span>
+              <p className="mt-1 font-mono text-2xl font-bold text-emerald-400">{analytics?.status2xx ?? 0}</p>
+            </div>
+            <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
+              <span className="font-mono text-[11px] uppercase tracking-wider text-amber-400">Client Err (4xx)</span>
+              <p className="mt-1 font-mono text-2xl font-bold text-amber-400">{analytics?.status4xx ?? 0}</p>
+            </div>
+            <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
+              <span className="font-mono text-[11px] uppercase tracking-wider text-rose-400">Server Err (5xx)</span>
+              <p className="mt-1 font-mono text-2xl font-bold text-rose-400">{analytics?.status5xx ?? 0}</p>
+            </div>
+          </div>
+          {analytics && analytics.avgLatencyMs > 0 ? (
+            <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
+              <span>Avg upstream proxy latency:</span>
+              <span className="font-mono font-medium text-foreground">{analytics.avgLatencyMs} ms</span>
+            </div>
+          ) : null}
+        </CardContent>
+      </Card>
 
       <BlueGreenTrafficCard
         project={project}
