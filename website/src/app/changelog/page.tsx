@@ -44,9 +44,36 @@ interface ProcessedRelease {
 
 const FALLBACK_RELEASES: ProcessedRelease[] = [
   {
+    version: "v2.4.1",
+    date: "September 12, 2026",
+    isLatest: true,
+    summary:
+      "Reliable plain HTML & static site zero-downtime deployments: fixed Nginx Dockerfile generator syntax, added native /health route responses, clean URL routing, and index.htm support.",
+    categories: [
+      {
+        title: "Deployment & Engine",
+        badge: "FIX",
+        items: [
+          {
+            title: "Static HTML Dockerfile generation fix",
+            description:
+              "Replaced invalid heredoc parsing with portable POSIX printf configuration generation for default.conf. Added dedicated /health endpoint returning 200 OK and clean URL fallbacks ($uri.html and /index.html).",
+            command: "ensureDockerfile(buildContextDir, appPort)",
+            prNumber: 189,
+          },
+          {
+            title: "Support index.htm and index.html detection",
+            description:
+              "Auto-detects either index.html or index.htm at the repository root and subdirectories to generate the production Nginx container.",
+          },
+        ],
+      },
+    ],
+  },
+  {
     version: "v2.4.0",
     date: "September 5, 2026",
-    isLatest: true,
+    isLatest: false,
     summary:
       "Production custom domains per project: isolated nginx upstream and server files, Certbot TLS per hostname, dashboard Live/Open links prefer the attached domain, and deploy traffic sync rewrites the app upstream after blue/green switches.",
     categories: [
