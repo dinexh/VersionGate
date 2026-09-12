@@ -48,34 +48,23 @@ const FALLBACK_RELEASES: ProcessedRelease[] = [
     date: "September 12, 2026",
     isLatest: true,
     summary:
-      "Per-deployment log viewer, multi-stage webhook auto-deployment deduplication, deployment status notifications, and one-click redeploy actions.",
+      "Automatic project stack recognition: intelligent pre-scan for Next.js, Vite, Nuxt, Remix, Astro, SvelteKit, FastAPI, Flask, Django, Go, Rust, and Dockerfiles with automatic port and health probe configuration.",
     categories: [
       {
-        title: "Deployment & Logs",
+        title: "Developer Experience & Automation",
         badge: "NEW",
         items: [
           {
-            title: "Per-deployment build and run logs",
+            title: "Automated Stack Detector Service",
             description:
-              "Deployments now attach their associated jobId and provide a direct 'View logs' action in the Deployments table, routing directly to the corresponding build output stream.",
-            command: "GET /api/v1/projects/:id/deployments",
+              "Backend service analyzing repository tree manifests to detect technology stacks, extract Dockerfile EXPOSE directives, and discover monorepo context directories.",
+            command: "GET /api/v1/github/repos/detect?owner=...&repo=...",
+            prNumber: 190,
           },
           {
-            title: "Deployment status notifications and redeploy option",
+            title: "Interactive Stack Feedback in Project Setup",
             description:
-              "Integrated real-time in-app toast and desktop browser notifications when deployments transition to ACTIVE or FAILED. Added one-click Redeploy buttons to the header bar and deployment actions menu.",
-          },
-        ],
-      },
-      {
-        title: "Webhooks & Automation",
-        badge: "FIX",
-        items: [
-          {
-            title: "Multi-stage webhook deduplication & branch switching",
-            description:
-              "Fixed git branch switching by avoiding single-branch clone restrictions, enabling robust multi-environment git checkouts. Resolved multi-stage webhook collision by prioritizing production when multiple environments track the same branch.",
-            command: "git fetch origin <branch> && git checkout -B <branch> origin/<branch>",
+              "Create Project dialog instantly auto-configures app port, health path, and build context presets with clean status badges upon selecting a repository.",
           },
         ],
       },

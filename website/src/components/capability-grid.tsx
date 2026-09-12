@@ -58,25 +58,14 @@ const CAPABILITIES: Capability[] = [
     badge: "Core Engine",
   },
   {
-    id: "cap-deploylogs",
+    id: "cap-autostack",
     category: "Deployment",
-    title: "Per-Deployment Logs & Direct Linking",
-    command: "GET /api/v1/projects/:id/deployments",
+    title: "Automatic Stack Recognition",
+    command: "GET /api/v1/github/repos/detect?owner=...&repo=...",
     description:
-      "Direct deployment-to-job correlation linking version records directly to live and historical build streams.",
+      "Inspects repository manifests to automatically identify frameworks, application ports, health probe paths, and build context subdirectories.",
     details:
-      "Deployment records return associated jobId via relational join with jobs. Deployment tables provide one-click 'View logs' access directly into the corresponding execution log terminal.",
-    badge: "NEW",
-  },
-  {
-    id: "cap-notifications-redeploy",
-    category: "Deployment",
-    title: "Deployment Status Notifications & Redeploy",
-    command: "POST /api/v1/deploy",
-    description:
-      "Real-time visual and desktop notifications on deployment transitions (LIVE, FAILED, ROLLBACK) with one-click redeploy.",
-    details:
-      "State transition tracking dispatches toast notifications and browser Web Notifications upon completion. Dedicated Redeploy actions allow immediate re-execution for any environment or past deployment record.",
+      "Pre-scans repositories for Next.js, Vite, Nuxt, Remix, Astro, SvelteKit, FastAPI, Flask, Django, Go, Rust, and Static HTML. Auto-populates container ports and health check routes in the project setup flow.",
     badge: "NEW",
   },
   {

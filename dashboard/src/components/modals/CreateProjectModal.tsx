@@ -1,12 +1,14 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   ApiError,
   createProject,
+  detectRepoStack,
   getGithubInstallation,
   getGithubRepoBranches,
   type GithubInstallationSummary,
   type GithubRepoRow,
+  type RepoStackDetection,
 } from "@/lib/api";
 import {
   Dialog,
@@ -65,6 +67,8 @@ export function CreateProjectModal({
   const [selectedGithubRepo, setSelectedGithubRepo] = useState<GithubRepoRow | null>(null);
   const [branchNames, setBranchNames] = useState<string[]>([]);
   const [branchesLoading, setBranchesLoading] = useState(false);
+  const [stackDetecting, setStackDetecting] = useState(false);
+  const [detectedStack, setDetectedStack] = useState<RepoStackDetection | null>(null);
 
   const reset = () => {
     setName("");
@@ -81,6 +85,8 @@ export function CreateProjectModal({
     setSelectedGithubRepo(null);
     setBranchNames([]);
     setBranchesLoading(false);
+    setStackDetecting(false);
+    setDetectedStack(null);
   };
 
   const handleOpenChange = (next: boolean) => {
@@ -164,6 +170,68 @@ export function CreateProjectModal({
       })
       .finally(() => setBranchesLoading(false));
   }, [selectedInstallationId, selectedGithubRepo]);
+
+  useEffect(() => {
+    let active = true;
+    let owner = "";
+    let repoName = "";
+
+    if (selectedGithubRepo) {
+      const slash = selectedGithubRepo.fullName.indexOf("/");
+      owner = slash >= 0 ? selectedGithubRepo.fullName.slice(0, slash) : "";
+      repoName = slash >= 0 ? selectedGithubRepo.fullName.slice(slash + 1) : "";
+    } else if (repoUrl.trim()) {
+      const match = repoUrl.trim().match(/github\.com[:/]([^/]+)\/([^/.]+?)(?:\.git)?$/);
+      if (match) {
+        owner = match[1];
+        repoName = match[2];
+      }
+    }
+
+    if (!owner || !repoName) {
+      setDetectedStack(null);
+      setStackDetecting(false);
+      return;
+    }
+
+    setStackDetecting(true);
+    void detectRepoStack(owner, repoName, branch || undefined, selectedInstallationId || undefined)
+      .then((res) => {
+        if (!active) return;
+        if (res && res.detected) {
+          setDetectedStack(res);
+          setAppPort(String(res.recommendedPort));
+          setHealthPath(res.recommendedHealthPath);
+          if (res.recommendedBuildContext && res.recommendedBuildContext !== ".") {
+            setBuildContext(res.recommendedBuildContext);
+          }
+        } else {
+          setDetectedStack(null);
+        }
+      })
+      .catch(() => {
+        if (active) setDetectedStack(null);
+      })
+      .finally(() => {
+        if (active) setStackDetecting(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [selectedGithubRepo, branch, repoUrl, selectedInstallationId]);
+
+  const contextPresets = useMemo(() => {
+    const list: { label: string; value: string }[] = [...ROOT_PRESETS];
+    if (detectedStack?.suggestions) {
+      for (const s of detectedStack.suggestions) {
+        if (!list.some((existing) => existing.value === s.value)) {
+          list.push(s);
+        }
+      }
+    }
+    return list;
+  }, [detectedStack]);
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -378,13 +446,32 @@ export function CreateProjectModal({
             </>
           )}
 
+          {stackDetecting ? (
+            <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground font-mono">
+              <span className="text-sky-400 font-semibold">[ 01 // DETECTING STACK ]</span>
+              <span>Scanning repository structure and dependencies…</span>
+            </div>
+          ) : detectedStack ? (
+            <div className="flex items-center justify-between rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs">
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-[10px] font-semibold text-emerald-400 border border-emerald-800/60 bg-emerald-950/40 px-1.5 py-0.5 rounded">
+                  [ STACK: {detectedStack.label.toUpperCase()} ]
+                </span>
+                <span className="text-muted-foreground">
+                  Configured port {detectedStack.recommendedPort} // health {detectedStack.recommendedHealthPath}
+                </span>
+              </div>
+              <span className="font-mono text-[10px] text-muted-foreground uppercase">{detectedStack.confidence} confidence</span>
+            </div>
+          ) : null}
+
           <div className="grid gap-2">
             <label htmlFor="cp-ctx" className="text-sm font-medium">
               Build context path
             </label>
             <p className="text-xs text-muted-foreground">Subdirectory containing the Dockerfile or build manifest.</p>
             <div className="flex flex-wrap gap-2">
-              {ROOT_PRESETS.map((p) => (
+              {contextPresets.map((p) => (
                 <Button
                   key={p.value}
                   type="button"
