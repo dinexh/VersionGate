@@ -1,8 +1,9 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { patchEnvironmentEnv, type EnvironmentSummary } from "@/lib/api";
+import { patchEnvironmentEnv, triggerDeploy, type EnvironmentSummary } from "@/lib/api";
 import { toast } from "sonner";
 
 interface EnvironmentEnvModalProps {
@@ -20,12 +21,14 @@ export function EnvironmentEnvModal({
   onOpenChange,
   onRefresh,
 }: EnvironmentEnvModalProps) {
+  const navigate = useNavigate();
   const [envPairs, setEnvPairs] = useState<Array<{ key: string; value: string }>>(() => {
     if (!environment?.env) return [{ key: "", value: "" }];
     const entries = Object.entries(environment.env);
     return entries.length > 0 ? entries.map(([key, value]) => ({ key, value })) : [{ key: "", value: "" }];
   });
   const [saving, setSaving] = useState(false);
+  const [redeploying, setRedeploying] = useState(false);
 
   if (!environment) return null;
 
@@ -43,17 +46,22 @@ export function EnvironmentEnvModal({
     setEnvPairs(next);
   };
 
+  const saveEnvVars = async (): Promise<boolean> => {
+    const obj: Record<string, string> = {};
+    for (const pair of envPairs) {
+      const k = pair.key.trim();
+      if (k) {
+        obj[k] = pair.value;
+      }
+    }
+    await patchEnvironmentEnv(projectId, environment.id, obj);
+    return true;
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
-      const obj: Record<string, string> = {};
-      for (const pair of envPairs) {
-        const k = pair.key.trim();
-        if (k) {
-          obj[k] = pair.value;
-        }
-      }
-      await patchEnvironmentEnv(projectId, environment.id, obj);
+      await saveEnvVars();
       toast.success(`Environment variables updated for ${environment.name}`);
       await onRefresh();
       onOpenChange(false);
@@ -61,6 +69,23 @@ export function EnvironmentEnvModal({
       toast.error(err instanceof Error ? err.message : "Failed to save environment variables");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSaveAndRedeploy = async () => {
+    setRedeploying(true);
+    try {
+      await saveEnvVars();
+      toast.success(`[ OK ] Variables saved. Redeploying ${environment.name}…`);
+      const r = await triggerDeploy(projectId, environment.id);
+      toast.success(`Deploy queued — ${environment.name} — job ${r.jobId.slice(0, 8)}…`);
+      await onRefresh();
+      onOpenChange(false);
+      navigate(`/projects/${projectId}/deploy/${r.jobId}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save and redeploy");
+    } finally {
+      setRedeploying(false);
     }
   };
 
@@ -109,12 +134,20 @@ export function EnvironmentEnvModal({
           </Button>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" type="button" onClick={() => onOpenChange(false)}>
+        <DialogFooter className="gap-2 sm:justify-end">
+          <Button variant="outline" type="button" onClick={() => onOpenChange(false)} disabled={saving || redeploying}>
             Cancel
           </Button>
-          <Button type="button" disabled={saving} onClick={() => void handleSave()}>
+          <Button variant="secondary" type="button" disabled={saving || redeploying} onClick={() => void handleSave()}>
             {saving ? "Saving…" : "Save Variables"}
+          </Button>
+          <Button
+            type="button"
+            className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+            disabled={saving || redeploying}
+            onClick={() => void handleSaveAndRedeploy()}
+          >
+            {redeploying ? "Deploying…" : "Save & Redeploy"}
           </Button>
         </DialogFooter>
       </DialogContent>

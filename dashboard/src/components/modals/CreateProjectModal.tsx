@@ -69,6 +69,7 @@ export function CreateProjectModal({
   const [branchesLoading, setBranchesLoading] = useState(false);
   const [stackDetecting, setStackDetecting] = useState(false);
   const [detectedStack, setDetectedStack] = useState<RepoStackDetection | null>(null);
+  const [envPairs, setEnvPairs] = useState<{ key: string; value: string }[]>([]);
 
   const reset = () => {
     setName("");
@@ -87,6 +88,21 @@ export function CreateProjectModal({
     setBranchesLoading(false);
     setStackDetecting(false);
     setDetectedStack(null);
+    setEnvPairs([]);
+  };
+
+  const addEnvPair = () => {
+    setEnvPairs((prev) => [...prev, { key: "", value: "" }]);
+  };
+
+  const removeEnvPair = (idx: number) => {
+    setEnvPairs((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const updateEnvPair = (idx: number, field: "key" | "value", val: string) => {
+    setEnvPairs((prev) =>
+      prev.map((item, i) => (i === idx ? { ...item, [field]: val } : item))
+    );
   };
 
   const handleOpenChange = (next: boolean) => {
@@ -253,6 +269,15 @@ export function CreateProjectModal({
       toast.error("App port must be between 1 and 65535.");
       return;
     }
+
+    const envMap: Record<string, string> = {};
+    for (const p of envPairs) {
+      const k = p.key.trim();
+      if (k) {
+        envMap[k] = p.value;
+      }
+    }
+
     setSubmitting(true);
     try {
       const { project } = await createProject({
@@ -262,6 +287,7 @@ export function CreateProjectModal({
         buildContext: buildContext.trim() || ".",
         appPort: port,
         healthPath: healthPath.trim() || "/health",
+        env: Object.keys(envMap).length > 0 ? envMap : undefined,
       });
       toast.success("Project created");
       handleOpenChange(false);
@@ -518,6 +544,50 @@ export function CreateProjectModal({
                 placeholder="/healthz"
               />
             </div>
+          </div>
+
+          <div className="space-y-2 pt-2 border-t border-border/50">
+            <div className="flex items-center justify-between">
+              <div>
+                <label className="text-sm font-medium">Environment Variables (Optional)</label>
+                <p className="text-xs text-muted-foreground">
+                  Encrypted at rest with AES-256-GCM. Injected into the container runtime.
+                </p>
+              </div>
+              <Button type="button" variant="outline" size="sm" onClick={addEnvPair} className="text-xs h-7">
+                + Add Variable
+              </Button>
+            </div>
+
+            {envPairs.length > 0 ? (
+              <div className="space-y-2 max-h-36 overflow-y-auto pr-1">
+                {envPairs.map((p, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <Input
+                      placeholder="KEY (e.g. DATABASE_URL)"
+                      value={p.key}
+                      onChange={(e) => updateEnvPair(idx, "key", e.target.value)}
+                      className="font-mono text-xs uppercase"
+                    />
+                    <Input
+                      placeholder="VALUE"
+                      value={p.value}
+                      onChange={(e) => updateEnvPair(idx, "value", e.target.value)}
+                      className="font-mono text-xs"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeEnvPair(idx)}
+                      className="h-8 w-8 p-0 text-muted-foreground hover:text-rose-500"
+                    >
+                      ✕
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            ) : null}
           </div>
           <DialogFooter className="gap-2 pt-2 sm:justify-end">
             <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
