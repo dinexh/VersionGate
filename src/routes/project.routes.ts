@@ -142,11 +142,14 @@ export async function projectRoutes(app: FastifyInstance): Promise<void> {
       body: {
         type: "object",
         properties: {
+          name: { type: "string", minLength: 1, maxLength: 64, pattern: "^[a-z0-9-]+$" },
+          repoUrl: { type: "string", minLength: 1 },
           branch: { type: "string", minLength: 1 },
           buildContext: { type: "string", minLength: 1 },
           appPort: { type: "integer", minimum: 1, maximum: 65535 },
           healthPath: { type: "string", minLength: 1 },
           basePort: { type: "integer", minimum: 1024, maximum: 65534 },
+          env: envSchema,
         },
         additionalProperties: false,
       },

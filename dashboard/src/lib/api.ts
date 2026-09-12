@@ -225,6 +225,29 @@ export function createProject(data: {
   return request("POST", "/projects", data);
 }
 
+export function updateProject(
+  id: string,
+  data: {
+    name?: string;
+    repoUrl?: string;
+    branch?: string;
+    buildContext?: string;
+    appPort?: number;
+    healthPath?: string;
+    basePort?: number;
+    env?: Record<string, string>;
+  }
+): Promise<{ project: Project }> {
+  return request("PATCH", `/projects/${id}`, data);
+}
+
+export function updateProjectEnv(
+  id: string,
+  env: Record<string, string>
+): Promise<{ project: Project }> {
+  return request("PATCH", `/projects/${id}/env`, { env });
+}
+
 export function deleteProject(id: string): Promise<void> {
   return request("DELETE", `/projects/${id}`);
 }

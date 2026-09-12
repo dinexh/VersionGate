@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { DonutChart } from "@/components/charts/DonutChart";
 import { DeleteProjectDialog } from "@/components/modals/DeleteProjectDialog";
+import { EditProjectModal } from "@/components/modals/EditProjectModal";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   getDeployments,
@@ -77,6 +78,7 @@ export function ProjectDetail() {
   const [customDomains, setCustomDomains] = useState<ProjectDomain[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const previousStatusMapRef = useRef<Map<string, string>>(new Map());
 
   const load = async (isSilent = false) => {
@@ -330,6 +332,9 @@ export function ProjectDetail() {
           <Button size="sm" className="bg-white text-black font-semibold hover:bg-neutral-200 text-xs font-sans" onClick={() => void onDeploy()}>
             Deploy Production
           </Button>
+          <Button variant="outline" size="sm" className="border-neutral-700 text-neutral-200 hover:bg-neutral-800 text-xs font-sans" onClick={() => setEditOpen(true)}>
+            Edit Settings
+          </Button>
           <Button type="button" variant="ghost" size="sm" className="text-neutral-400 hover:text-rose-400 text-xs font-sans" onClick={() => setDeleteOpen(true)}>
             Delete
           </Button>
@@ -428,8 +433,11 @@ export function ProjectDetail() {
       />
 
       <Card className="border-border bg-card">
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
           <CardTitle className="text-base">Configuration</CardTitle>
+          <Button variant="outline" size="sm" className="h-7 text-xs font-sans" onClick={() => setEditOpen(true)}>
+            Edit
+          </Button>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 sm:grid-cols-3">
@@ -699,6 +707,15 @@ export function ProjectDetail() {
           </CardContent>
         </Card>
       </div>
+
+      <EditProjectModal
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        project={project}
+        onUpdated={() => {
+          void load(false);
+        }}
+      />
 
       <DeleteProjectDialog
         open={deleteOpen}

@@ -35,11 +35,14 @@ interface UpdateEnvBody {
 }
 
 interface UpdateProjectBody {
+  name?: string;
+  repoUrl?: string;
   branch?: string;
   buildContext?: string;
   appPort?: number;
   healthPath?: string;
   basePort?: number;
+  env?: Record<string, string>;
 }
 
 export async function createProjectHandler(
@@ -155,6 +158,12 @@ export async function updateProjectHandler(
   const project = await projectRepo.findById(id);
   if (!project) {
     return reply.code(404).send({ error: "NotFound", message: "Project not found" });
+  }
+  if (req.body.env !== undefined) {
+    const envError = validateEnvObject(req.body.env);
+    if (envError) {
+      return reply.code(400).send({ error: "ValidationError", message: envError });
+    }
   }
   const updated = await projectRepo.update(id, req.body);
   logger.info({ projectId: id }, "API: project updated");
