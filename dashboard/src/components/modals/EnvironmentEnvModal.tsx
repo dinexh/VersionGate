@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useEffect, useRef, useState, type ClipboardEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { patchEnvironmentEnv, triggerDeploy, type EnvironmentSummary } from "@/lib/api";
 import { toast } from "sonner";
+import { handleEnvPaste } from "@/lib/env-parser";
 
 interface EnvironmentEnvModalProps {
   projectId: string;
@@ -22,13 +23,19 @@ export function EnvironmentEnvModal({
   onRefresh,
 }: EnvironmentEnvModalProps) {
   const navigate = useNavigate();
-  const [envPairs, setEnvPairs] = useState<Array<{ key: string; value: string }>>(() => {
-    if (!environment?.env) return [{ key: "", value: "" }];
-    const entries = Object.entries(environment.env);
-    return entries.length > 0 ? entries.map(([key, value]) => ({ key, value })) : [{ key: "", value: "" }];
-  });
+  const [envPairs, setEnvPairs] = useState<Array<{ key: string; value: string }>>([]);
   const [saving, setSaving] = useState(false);
   const [redeploying, setRedeploying] = useState(false);
+
+  const wasOpenRef = useRef(false);
+
+  useEffect(() => {
+    if (open && !wasOpenRef.current && environment) {
+      const entries = Object.entries(environment.env || {});
+      setEnvPairs(entries.length > 0 ? entries.map(([key, value]) => ({ key, value })) : [{ key: "", value: "" }]);
+    }
+    wasOpenRef.current = open;
+  }, [open, environment]);
 
   if (!environment) return null;
 
@@ -109,12 +116,24 @@ export function EnvironmentEnvModal({
                 placeholder="KEY (e.g. NODE_ENV)"
                 value={pair.key}
                 onChange={(e) => handlePairChange(idx, "key", e.target.value)}
+                onPaste={(e: ClipboardEvent<HTMLInputElement>) => {
+                  const text = e.clipboardData.getData("text");
+                  if (handleEnvPaste(text, idx, setEnvPairs)) {
+                    e.preventDefault();
+                  }
+                }}
                 className="font-mono text-xs uppercase"
               />
               <Input
                 placeholder="VALUE (e.g. staging)"
                 value={pair.value}
                 onChange={(e) => handlePairChange(idx, "value", e.target.value)}
+                onPaste={(e: ClipboardEvent<HTMLInputElement>) => {
+                  const text = e.clipboardData.getData("text");
+                  if (handleEnvPaste(text, idx, setEnvPairs)) {
+                    e.preventDefault();
+                  }
+                }}
                 className="font-mono text-xs"
               />
               <Button
