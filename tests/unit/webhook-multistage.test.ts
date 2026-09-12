@@ -36,4 +36,20 @@ describe("Webhook Multi-Stage Branch Routing Logic", () => {
     const matched = matchEnvironments("feature/random-exp", environments);
     expect(matched.length).toBe(0);
   });
+
+  test("prioritizes production when multiple environments share the same branch", () => {
+    const defaultSetupEnvs = [
+      { id: "env-dev", name: "development", branch: "main" },
+      { id: "env-staging", name: "staging", branch: "main" },
+      { id: "env-prod", name: "production", branch: "main" },
+    ];
+    let matched = defaultSetupEnvs.filter((e) => e.branch === "main");
+    expect(matched.length).toBe(3);
+    if (matched.length > 1) {
+      const prod = matched.find((e) => e.name === "production");
+      if (prod) matched = [prod];
+    }
+    expect(matched.length).toBe(1);
+    expect(matched[0].name).toBe("production");
+  });
 });

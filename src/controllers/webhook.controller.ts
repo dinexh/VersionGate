@@ -35,12 +35,13 @@ export async function githubWebhookHandler(
     return reply.code(200).send({ skipped: true, reason: `Ignoring event: ${event}` });
   }
 
+  const environments = await envRepo.findAllForProject(project.id);
+
   // Find all environments matching the pushed branch
   const ref = req.body?.ref ?? "";
   const pushedBranch = ref.replace("refs/heads/", "");
 
-  const environments = await envRepo.findAllForProject(project.id);
-  const matchingEnvs = pushedBranch
+  let matchingEnvs = pushedBranch
     ? environments.filter((e) => e.branch === pushedBranch)
     : environments.filter((e) => e.name === "production");
 
@@ -48,6 +49,14 @@ export async function githubWebhookHandler(
     const defaultEnv = await envRepo.findDefaultForProject(project.id);
     if (defaultEnv && (!pushedBranch || defaultEnv.branch === pushedBranch)) {
       matchingEnvs.push(defaultEnv);
+    }
+  }
+
+  // If multiple environments match the same branch (e.g. default setup), prioritize production to prevent duplicate runs
+  if (matchingEnvs.length > 1) {
+    const prod = matchingEnvs.find((e) => e.name === "production");
+    if (prod) {
+      matchingEnvs = [prod];
     }
   }
 

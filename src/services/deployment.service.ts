@@ -204,7 +204,9 @@ export class DeploymentService {
     return this.repo.findAll().then((all) => all.find((d) => d.status === "ACTIVE") ?? null);
   }
 
-  async getAllDeployments(projectId?: string): Promise<DeploymentSelect[]> {
+  async getAllDeployments(
+    projectId?: string
+  ): Promise<(DeploymentSelect & { projectId: string; jobId?: string | null })[]> {
     if (projectId) {
       return this.repo.findAllForProject(projectId);
     }
