@@ -219,11 +219,15 @@ async function resolveInstallationForUser(
 ): Promise<GitHubInstallationSelect | null> {
   const db = getDb();
   if (installationIdQuery && /^\d+$/.test(installationIdQuery)) {
+    const instId = BigInt(installationIdQuery);
     const [row] = await db
       .select()
       .from(githubInstallations)
       .where(
-        eq(githubInstallations.userId, userId)
+        and(
+          eq(githubInstallations.userId, userId),
+          eq(githubInstallations.installationId, instId)
+        )
       )
       .limit(1);
     return row ?? null;
@@ -517,6 +521,7 @@ export async function githubRepoBranchesHandler(
     return;
   }
 
+  let lastRelayError: string | null = null;
   const secretsToTry = [process.env.GITHUB_STATE_SECRET, config.githubStateSecret].filter((s): s is string => Boolean(s && s.trim()));
   for (const sec of secretsToTry) {
     try {
@@ -532,13 +537,16 @@ export async function githubRepoBranchesHandler(
       });
       return;
     } catch (err) {
+      lastRelayError = err instanceof Error ? err.message : String(err);
       logger.warn({ err, sec: sec.slice(0, 6) }, "githubRepoBranchesHandler: relay fetch attempt failed");
     }
   }
 
   reply.code(503).send({
     error: "ServiceUnavailable",
-    message: "Could not fetch repository branches. Set GITHUB_APP_ID/GITHUB_APP_PRIVATE_KEY or ensure GITHUB_STATE_SECRET is configured.",
+    message: lastRelayError
+      ? `Could not fetch repository branches from relay: ${lastRelayError}`
+      : "Could not fetch repository branches. Set GITHUB_APP_ID/GITHUB_APP_PRIVATE_KEY or ensure GITHUB_STATE_SECRET is configured.",
   });
 }
 
@@ -602,6 +610,7 @@ export async function githubReposHandler(
     return;
   }
 
+  let lastRelayError: string | null = null;
   const secretsToTry = [process.env.GITHUB_STATE_SECRET, config.githubStateSecret].filter((s): s is string => Boolean(s && s.trim()));
   for (const sec of secretsToTry) {
     try {
@@ -616,13 +625,16 @@ export async function githubReposHandler(
       });
       return;
     } catch (err) {
+      lastRelayError = err instanceof Error ? err.message : String(err);
       logger.warn({ err, sec: sec.slice(0, 6) }, "githubReposHandler: relay fetch attempt failed");
     }
   }
 
   reply.code(503).send({
     error: "ServiceUnavailable",
-    message: "Could not fetch repositories. Set GITHUB_APP_ID/GITHUB_APP_PRIVATE_KEY or ensure GITHUB_STATE_SECRET is configured.",
+    message: lastRelayError
+      ? `Could not fetch repositories from relay: ${lastRelayError}`
+      : "Could not fetch repositories. Set GITHUB_APP_ID/GITHUB_APP_PRIVATE_KEY or ensure GITHUB_STATE_SECRET is configured.",
   });
 }
 
