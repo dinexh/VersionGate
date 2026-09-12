@@ -650,6 +650,16 @@ export function linkGithubInstallation(installationId: string): Promise<{
   );
 }
 
+export function deleteGithubInstallation(installationId?: string): Promise<{ success: boolean; message: string }> {
+  const q = installationId ? `?installationId=${encodeURIComponent(installationId)}` : "";
+  return request<{ success: boolean; message: string }>(
+    "DELETE",
+    `/github/installation${q}`,
+    undefined,
+    githubApiBase()
+  );
+}
+
 export function getGithubIntegrationStatus(): Promise<GithubIntegrationStatus> {
   return request("GET", "/github/status", undefined, githubApiBase());
 }

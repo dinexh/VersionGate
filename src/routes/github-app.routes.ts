@@ -5,6 +5,7 @@ import {
   githubAppWebhookHandler,
   githubCallbackHandler,
   githubInstallationRecordHandler,
+  githubDeleteInstallationHandler,
   githubLinkInstallationHandler,
   githubIntegrationStatusHandler,
   githubInstallHandler,
@@ -18,6 +19,8 @@ export async function githubAppRoutes(app: FastifyInstance): Promise<void> {
   app.get("/auth/github/install", githubInstallHandler);
   app.get("/auth/github/callback", githubCallbackHandler);
   app.get("/github/installation", githubInstallationRecordHandler);
+  app.delete("/github/installation", githubDeleteInstallationHandler);
+  app.delete("/github/installation/:installationId", githubDeleteInstallationHandler);
   app.post("/github/installation/link", githubLinkInstallationHandler);
   app.get("/github/status", githubIntegrationStatusHandler);
   app.get("/github/repos/:owner/:repo/branches", githubRepoBranchesHandler);

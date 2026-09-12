@@ -1,5 +1,5 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { eq, desc } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import { Octokit } from "@octokit/rest";
 import { createAppAuth } from "@octokit/auth-app";
 import { config } from "../config/env";
@@ -288,6 +288,35 @@ export async function githubInstallationRecordHandler(req: FastifyRequest, reply
       createdAt: r.createdAt.toISOString(),
     })),
   });
+}
+
+export async function githubDeleteInstallationHandler(
+  req: FastifyRequest<{ Params: { installationId?: string }; Querystring: { installationId?: string } }>,
+  reply: FastifyReply
+): Promise<void> {
+  const user = await resolveRequestUser(req);
+  if (!user) {
+    reply.code(401).send({ error: "Unauthorized", message: "Sign in required", code: "AUTH_REQUIRED" });
+    return;
+  }
+
+  const idParam = req.params?.installationId || req.query?.installationId;
+  const db = getDb();
+
+  if (idParam && /^\d+$/.test(idParam)) {
+    const instId = BigInt(idParam);
+    await db
+      .delete(githubInstallations)
+      .where(and(eq(githubInstallations.userId, user.id), eq(githubInstallations.installationId, instId)));
+    logger.info({ userId: user.id, installationId: idParam }, "githubDeleteInstallationHandler: removed specific installation");
+  } else {
+    await db
+      .delete(githubInstallations)
+      .where(eq(githubInstallations.userId, user.id));
+    logger.info({ userId: user.id }, "githubDeleteInstallationHandler: removed all user installations");
+  }
+
+  reply.code(200).send({ success: true, message: "Installation removed" });
 }
 
 export async function githubLinkInstallationHandler(
