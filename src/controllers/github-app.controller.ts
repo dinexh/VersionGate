@@ -23,6 +23,7 @@ import {
   fetchBranchesFromRelay,
 } from "../utils/github/github-relay";
 import { dashboardIntegrationsAbsoluteUrl } from "../utils/public-app-origin";
+import { stackDetectorService } from "../services/stack-detector.service";
 
 const projectRepo = new ProjectRepository();
 const envRepo = new EnvironmentRepository();
@@ -766,27 +767,33 @@ export async function githubAppRelayWebhookHandler(req: ReqWithRaw, reply: Fasti
 }
 
 export async function githubDetectRepoHandler(
-  req: FastifyRequest<{ Querystring: { owner?: string; repo?: string; installationId?: string } }>,
+  req: FastifyRequest<{ Querystring: { owner?: string; repo?: string; installationId?: string; branch?: string } }>,
   reply: FastifyReply
 ): Promise<void> {
-  const { owner, repo } = req.query;
+  const { owner, repo, installationId, branch } = req.query;
   if (!owner || !repo) {
     reply.code(400).send({ error: "BadRequest", message: "Missing owner or repo" });
     return;
   }
 
-  const suggestions = [
-    { label: "Repository root (.)", value: "." },
-    { label: "website", value: "website" },
-    { label: "dashboard", value: "dashboard" },
-    { label: "apps/web", value: "apps/web" },
-    { label: "frontend", value: "frontend" },
-  ];
+  const instId = installationId && /^\d+$/.test(installationId) ? parseInt(installationId, 10) : undefined;
+  const result = await stackDetectorService.detectFromGithub(owner, repo, {
+    installationId: instId,
+    branch,
+  });
 
   reply.code(200).send({
-    detectedContext: ".",
-    detectedPort: 3000,
-    framework: "Node.js / React / Next.js",
-    suggestions,
+    detected: result.detected,
+    stack: result.stack,
+    label: result.label,
+    framework: result.label,
+    detectedPort: result.recommendedPort,
+    recommendedPort: result.recommendedPort,
+    detectedHealthPath: result.recommendedHealthPath,
+    recommendedHealthPath: result.recommendedHealthPath,
+    detectedContext: result.recommendedBuildContext,
+    recommendedBuildContext: result.recommendedBuildContext,
+    confidence: result.confidence,
+    suggestions: result.suggestions,
   });
 }

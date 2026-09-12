@@ -649,6 +649,35 @@ export function getGithubRepoBranches(
   );
 }
 
+export interface RepoStackDetection {
+  detected: boolean;
+  stack: string;
+  label: string;
+  framework: string;
+  recommendedPort: number;
+  recommendedHealthPath: string;
+  recommendedBuildContext: string;
+  confidence: "high" | "medium" | "low";
+  suggestions: { label: string; value: string }[];
+}
+
+export function detectRepoStack(
+  owner: string,
+  repo: string,
+  branch?: string,
+  installationId?: string
+): Promise<RepoStackDetection> {
+  const params = new URLSearchParams({ owner, repo });
+  if (branch) params.set("branch", branch);
+  if (installationId) params.set("installationId", installationId);
+  return request(
+    "GET",
+    `/github/repos/detect?${params.toString()}`,
+    undefined,
+    githubApiBase()
+  );
+}
+
 export function createWebSocket(jobId: string): WebSocket {
   const envUrl = import.meta.env.VITE_API_URL as string | undefined;
   if (envUrl && /^https?:\/\//i.test(envUrl)) {
